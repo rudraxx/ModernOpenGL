@@ -83,7 +83,8 @@ def main():
     uniform sampler2D samplerTex;
     void main()
     {
-        outColor = texture(samplerTex,outTexCoords) * vec4(newColor, 1.0f);
+        //outColor = texture(samplerTex,outTexCoords) * vec4(newColor, 1.0f);
+        outColor = texture(samplerTex,outTexCoords);
     }
     """
 
@@ -135,15 +136,29 @@ def main():
     glEnableVertexAttribArray(2)
 
     # Load image
-    image = Image.open("./res/brick_wall.jpg")
-    width, height = image.size
+    im_type = "png" # "png" or "jpg"
 
-    print("Loaded Image size: ", image.size)
+    if im_type == "jpg":
+        image = Image.open("./res/brick_wall.jpg")
+        width, height = image.size
+        print("Loaded Image size: ", image.size)
+        img_data = np.array(list(image.getdata()), np.uint8)
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
+                     width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, img_data)
 
-    img_data = np.array(list(image.getdata()), np.uint8)
+    elif im_type == "png":
+        image = Image.open("./res/opengl_test.png")
+        # This causes flipped image for png
+        image = image.transpose(Image.FLIP_TOP_BOTTOM)
+        width, height = image.size
+        print("Loaded Image size: ", image.size)
+
+        img_data = image.convert("RGBA").tobytes()
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+                     width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img_data)
+
     # print(type(image))#.shape, image.width, image.height)
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
-                 width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, img_data)
+
 
     glUseProgram(shader)
 
