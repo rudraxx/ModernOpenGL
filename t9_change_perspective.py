@@ -2,7 +2,7 @@ import ctypes
 
 import glfw
 from OpenGL.GL import *
-import OpenGL.GL.shaders
+import ShaderLoader
 import numpy as np
 from PIL import Image
 import pyrr
@@ -17,7 +17,7 @@ def main():
     if not glfw.init():
         return
 
-    w_width, w_height = 800.0, 600.0
+    w_width, w_height = 800, 600
 
     # # Set if you want the window size to stay fixed
     # glfw.window_hint(glfw.RESIZABLE, GL_FALSE)
@@ -104,44 +104,9 @@ def main():
     # Input position is in homogeneous world coordinates xyzw
     # Output of the vertex shader is in device coordinates
     # ie display screen coordinates
-    vertex_shader_code = """
-    #version 330
-    in layout(location = 0) vec3 position;
-    in layout(location = 1) vec3 color;
-    in layout(location = 2) vec2 inTexCoords;
 
-    uniform mat4 transform;
-    uniform mat4 view;
-    uniform mat4 projection;
-    uniform mat4 model;
-
-    out vec3 newColor;
-    out vec2 outTexCoords;
-    
-    void main()
-    {
-        //gl_Position = projection * view * model * transform * vec4(position,1.0f);
-        gl_Position = transform * vec4(position,1.0f);
-        newColor   = color;
-        outTexCoords = inTexCoords;
-    }
-    """
-    fragment_shader_code = """
-    #version 330
-    in vec3 newColor;
-    in vec2 outTexCoords;
-    
-    out vec4 outColor;
-    uniform sampler2D samplerTex;
-    void main()
-    {
-        outColor = texture(samplerTex,outTexCoords) * vec4(newColor, 1.0f);
-        //outColor = texture(samplerTex,outTexCoords);
-    }
-    """
-
-    shader  = OpenGL.GL.shaders.compileProgram(OpenGL.GL.shaders.compileShader(vertex_shader_code,GL_VERTEX_SHADER),
-                                               OpenGL.GL.shaders.compileShader(fragment_shader_code,GL_FRAGMENT_SHADER))
+    shader = ShaderLoader.compile_shader("shaders/vertex_shader.vs",
+                                         "shaders/fragment_shader.fs")
 
     # # Check if the shader compiled properly. glGetError wont report
     # # and error in this compilation
@@ -220,7 +185,7 @@ def main():
 
     # Define viewMatrix
     view = pyrr.matrix44.create_from_translation(pyrr.Vector3([0.0, 0.0, -3.0]))
-    projection = pyrr.matrix44.create_perspective_projection_matrix(60, 1.2, 0.1, 100.0)
+    projection = pyrr.matrix44.create_perspective_projection_matrix(45, w_width/w_height, 0.1, 100.0)
 
     # Set position of cube/ model
     model =pyrr.matrix44.create_from_translation(pyrr.Vector3([0.0, 0.0, 0.0 ]))
