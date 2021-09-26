@@ -21,7 +21,7 @@ def main():
     #Needs context
     glfw.make_context_current(window)
 
-    # Create vertices
+    # Create vertices for cube
     #                   [positions          colors
     cube =   np.array([  -0.5, -0.5, 0.5,   1.0, 0.0, 0.0,
                           0.5, -0.5, 0.5,   0.0, 1.0, 0.0,

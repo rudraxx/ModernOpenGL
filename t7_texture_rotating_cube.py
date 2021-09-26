@@ -5,6 +5,7 @@ from OpenGL.GL import *
 import OpenGL.GL.shaders
 import numpy as np
 from PIL import Image
+import pyrr
 
 def main():
 
@@ -12,7 +13,8 @@ def main():
     if not glfw.init():
         return
 
-    window  = glfw.create_window(1600,1200,"My OpenGL Window",None, None)
+    w_width, w_height = 800, 600
+    window  = glfw.create_window(w_width, w_height, "My OpenGL Window",None, None)
 
     if not window:
         glfw.terminate()
@@ -21,30 +23,66 @@ def main():
     #Needs context
     glfw.make_context_current(window)
 
-    # Create vertices
-    #                   [positions          colors         texture coordinates
-    quad =   np.array([  -0.5, -0.5, 0.0,   1.0, 0.0, 0.0,  0.0, 0.0,
-                          0.5, -0.5, 0.0,   0.0, 1.0, 0.0,  1.0, 0.0,
-                          0.5,  0.5, 0.0,   0.0, 0.0, 1.0,  1.0, 1.0,
-                         -0.5,  0.5, 0.0,   1.0, 1.0, 1.0,  0.0, 1.0
-                         ], dtype= np.float32)
+    # Create vertices for cube
+    #         positions          colors         texture coordinates
+    mShape = [-0.5, -0.5,  0.5,  1.0, 0.0, 0.0,  0.0, 0.0,
+             0.5, -0.5,  0.5,  0.0, 1.0, 0.0,  1.0, 0.0,
+             0.5,  0.5,  0.5,  0.0, 0.0, 1.0,  1.0, 1.0,
+            -0.5,  0.5,  0.5,  1.0, 1.0, 1.0,  0.0, 1.0,
 
-    print("Quad size in bytes is: ",  quad.size * quad.itemsize, "bytes")
+            -0.5, -0.5, -0.5,  1.0, 0.0, 0.0,  0.0, 0.0,
+            0.5, -0.5, -0.5,  0.0, 1.0, 0.0,  1.0, 0.0,
+            0.5,  0.5, -0.5,  0.0, 0.0, 1.0,  1.0, 1.0,
+            -0.5,  0.5, -0.5,  1.0, 1.0, 1.0,  0.0, 1.0,
 
-    # Set the indices of the vertices
-    indices = np.array([0, 1, 2,
-                        2, 3, 0],
-                       dtype=np.uint32)
+            0.5, -0.5, -0.5,  1.0, 0.0, 0.0,  0.0, 0.0,
+            0.5,  0.5, -0.5,  0.0, 1.0, 0.0,  1.0, 0.0,
+            0.5,  0.5,  0.5,  0.0, 0.0, 1.0,  1.0, 1.0,
+            0.5, -0.5,  0.5,  1.0, 1.0, 1.0,  0.0, 1.0,
 
-    print("Indices size in bytes is: ",  indices.size * indices.itemsize, "bytes")
+            -0.5,  0.5, -0.5,  1.0, 0.0, 0.0,  0.0, 0.0,
+            -0.5, -0.5, -0.5,  0.0, 1.0, 0.0,  1.0, 0.0,
+            -0.5, -0.5,  0.5,  0.0, 0.0, 1.0,  1.0, 1.0,
+            -0.5,  0.5,  0.5,  1.0, 1.0, 1.0,  0.0, 1.0,
+
+            -0.5, -0.5, -0.5,  1.0, 0.0, 0.0,  0.0, 0.0,
+            0.5, -0.5, -0.5,  0.0, 1.0, 0.0,  1.0, 0.0,
+            0.5, -0.5,  0.5,  0.0, 0.0, 1.0,  1.0, 1.0,
+            -0.5, -0.5,  0.5,  1.0, 1.0, 1.0,  0.0, 1.0,
+
+            0.5,  0.5, -0.5,  1.0, 0.0, 0.0,  0.0, 0.0,
+            -0.5,  0.5, -0.5,  0.0, 1.0, 0.0,  1.0, 0.0,
+            -0.5,  0.5,  0.5,  0.0, 0.0, 1.0,  1.0, 1.0,
+            0.5,  0.5,  0.5,  1.0, 1.0, 1.0,  0.0, 1.0]
+
+    mShape = np.array(mShape, dtype = np.float32)
+
+    vertices_size_bytes = mShape.size * mShape.itemsize
+    print(" Total vertices size in bytes is: ",  vertices_size_bytes, "bytes")
+
+
+    indices = [ 0,  1,  2,  2,  3,  0,
+                4,  5,  6,  6,  7,  4,
+                8,  9, 10, 10, 11,  8,
+                12, 13, 14, 14, 15, 12,
+                16, 17, 18, 18, 19, 16,
+                20, 21, 22, 22, 23, 20]
+
+    indices = np.array(indices, dtype= np.uint32)
+
+    indices_size_bytes = indices.size * indices.itemsize
+    print("Indices size in bytes is: ", indices_size_bytes , "bytes")
+
+    numElementsToDraw  = indices.size
+    print("numElementsToDraw: ", numElementsToDraw, "elements")
 
     # Set the params for vertex attributes for the vertex shader
-    stride_position = 8 * quad.itemsize
+    stride_position = 8 * mShape.itemsize
     offset_position = 0
-    stride_color    = 8 * quad.itemsize
-    offset_color    = 3 * quad.itemsize
-    stride_tex      = 8 * quad.itemsize
-    offset_tex      = 6 * quad.itemsize
+    stride_color    = 8 * mShape.itemsize
+    offset_color    = 3 * mShape.itemsize
+    stride_tex      = 8 * mShape.itemsize
+    offset_tex      = 6 * mShape.itemsize
 
     print("stride_position: ", stride_position)
     print("offset_position: ", offset_position)
@@ -64,12 +102,14 @@ def main():
     in layout(location = 1) vec3 color;
     in layout(location = 2) vec2 inTexCoords;
 
+    uniform mat4 transform;
+
     out vec3 newColor;
     out vec2 outTexCoords;
     
     void main()
     {
-        gl_Position = vec4(position,1.0f);
+        gl_Position = transform * vec4(position,1.0f);
         newColor   = color;
         outTexCoords = inTexCoords;
     }
@@ -83,8 +123,8 @@ def main():
     uniform sampler2D samplerTex;
     void main()
     {
-        //outColor = texture(samplerTex,outTexCoords) * vec4(newColor, 1.0f);
-        outColor = texture(samplerTex,outTexCoords);
+        outColor = texture(samplerTex,outTexCoords) * vec4(newColor, 1.0f);
+        //outColor = texture(samplerTex,outTexCoords);
     }
     """
 
@@ -104,12 +144,12 @@ def main():
     glBindBuffer(GL_ARRAY_BUFFER,VBO)
     #Upload the actual data
     # www.open.gl/drawing
-    glBufferData(GL_ARRAY_BUFFER,quad.size * quad.itemsize,quad,GL_STATIC_DRAW)
+    glBufferData(GL_ARRAY_BUFFER,vertices_size_bytes,mShape,GL_STATIC_DRAW)
 
     # Create an Element Buffer Object for the indices
     EBO = glGenBuffers(1)
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO)
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size*indices.itemsize, indices, GL_STATIC_DRAW)
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices_size_bytes, indices, GL_STATIC_DRAW)
 
     # Create texture binding
     texture = glGenTextures(1)
@@ -123,15 +163,15 @@ def main():
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
 
-    # position = glGetAttribLocation(shader,"position")
+    # position
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride_position, ctypes.c_void_p(offset_position))
     glEnableVertexAttribArray(0)
 
-    # color = glGetAttribLocation(shader,"color")
+    # color
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride_color, ctypes.c_void_p(offset_color))
     glEnableVertexAttribArray(1)
 
-    # texture_coords = glGetAttribLocation(shader,"inTexCoords")
+    # texture_coords
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride_tex, ctypes.c_void_p(offset_tex))
     glEnableVertexAttribArray(2)
 
@@ -165,13 +205,21 @@ def main():
     # Create color for window
     glClearColor(0.2,0.3,0.1,1.0)
 
+    glEnable(GL_DEPTH_TEST)
     while not glfw.window_should_close(window):
         glfw.poll_events()
 
         # Clear the color buffer value
-        glClear(GL_COLOR_BUFFER_BIT)
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, None)
+        # Generate the transform
+        rot_mat = pyrr.matrix44.create_from_axis_rotation([1.,1.,1.], 0.8 * glfw.get_time())
+
+        # Update the transform variable in the vertex shader
+        transformLoc = glGetUniformLocation(shader,"transform")
+        glUniformMatrix4fv(transformLoc,1, GL_FALSE, rot_mat)
+
+        glDrawElements(GL_TRIANGLES, numElementsToDraw, GL_UNSIGNED_INT, None)
 
 
         glfw.swap_buffers(window)
