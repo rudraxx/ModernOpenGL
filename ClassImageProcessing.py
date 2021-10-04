@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 import pyrr
 from scipy.spatial.transform import Rotation as R
+from ClassFiltering import *
 
 class ClassImageProcessing():
 
@@ -17,11 +18,16 @@ class ClassImageProcessing():
         self.cameraMatrix = np.load("calibration_matrix.npy")
         self.distCoeffs = np.load("distCoeffs.npy")
 
-        self.avg_rvec =None
-        self.avg_tvec =None
+        self.avg_rvecs =None
+        self.avg_tvecs =None
 
         self.ypr_buffer = np.zeros(shape=(3,3),dtype=np.float32)
         self.tvec_buffer = np.zeros(shape=(3,3),dtype=np.float32)
+
+        # Create objects for filtering the tvec and rvec values
+        self.obj_ypr = ClassFiltering(3)
+        self.obj_tvec = ClassFiltering(3)
+
 
     def update_avg_rvec(self, rvecs, tvecs):
 
@@ -34,34 +40,43 @@ class ClassImageProcessing():
         # Use intrinsic rotations for euler angle calculation
         ypr_current = np.rad2deg(r.as_euler('ZYX'))
 
-        # Update buffer for angles
-        self.ypr_buffer[0,:] = self.ypr_buffer[1,:]
-        self.ypr_buffer[1,:] = self.ypr_buffer[2,:]
-        self.ypr_buffer[2,:] = ypr_current
+        # Update avg for angles
+        self.obj_ypr.updateBuffer(ypr_current)
+        ravg = R.from_euler('ZYX',self.obj_ypr.avg_value,degrees=True)
+        self.avg_rvecs = ravg.as_rotvec().reshape(1, 1, 3)
 
-        # Update buffer for tvec
-        self.tvec_buffer[0,:] = self.tvec_buffer[1,:]
-        self.tvec_buffer[1,:] = self.tvec_buffer[2,:]
-        self.tvec_buffer[2,:] = tvecs[0]
+        #Update avg for tvecs
+        self.obj_tvec.updateBuffer(tvecs[0])
+        self.avg_tvecs = self.obj_tvec.avg_value.reshape(1,1,3)
 
-        # Calculate average value
-        y = np.sum(self.ypr_buffer[:,0]) / self.ypr_buffer.shape[0]
-        p = np.sum(self.ypr_buffer[:,1]) / self.ypr_buffer.shape[0]
-        r = np.sum(self.ypr_buffer[:,2]) / self.ypr_buffer.shape[0]
-
-        t1 = np.sum(self.tvec_buffer[:,0]) / self.tvec_buffer.shape[0]
-        t2 = np.sum(self.tvec_buffer[:,1]) / self.tvec_buffer.shape[0]
-        t3 = np.sum(self.tvec_buffer[:,2]) / self.tvec_buffer.shape[0]
-
-        avg_eul = np.array([y,p,r])
-        avg_tvec = np.array([t1,t2,t3])
-
-        ravg = R.from_euler('ZYX',avg_eul,degrees=True)
-        rvec = ravg.as_rotvec()
+        #
+        # # Update buffer for angles
+        # self.ypr_buffer[0,:] = self.ypr_buffer[1,:]
+        # self.ypr_buffer[1,:] = self.ypr_buffer[2,:]
+        # self.ypr_buffer[2,:] = ypr_current
+        #
+        # # Calculate average value
+        # y = np.sum(self.ypr_buffer[:,0]) / self.ypr_buffer.shape[0]
+        # p = np.sum(self.ypr_buffer[:,1]) / self.ypr_buffer.shape[0]
+        # r = np.sum(self.ypr_buffer[:,2]) / self.ypr_buffer.shape[0]
+        # avg_eul = np.array([y,p,r])
+        # ravg = R.from_euler('ZYX',avg_eul,degrees=True)
+        # self.avg_rvecs = ravg.as_rotvec().reshape(1, 1, 3)
+        #
+        # # Update buffer for tvec
+        # self.tvec_buffer[0,:] = self.tvec_buffer[1,:]
+        # self.tvec_buffer[1,:] = self.tvec_buffer[2,:]
+        # self.tvec_buffer[2,:] = tvecs[0]
+        #
+        # t1 = np.sum(self.tvec_buffer[:,0]) / self.tvec_buffer.shape[0]
+        # t2 = np.sum(self.tvec_buffer[:,1]) / self.tvec_buffer.shape[0]
+        # t3 = np.sum(self.tvec_buffer[:,2]) / self.tvec_buffer.shape[0]
+        #
+        # self.avg_tvecs = np.array([t1,t2,t3]).reshape(1, 1, 3)
 
         # tvec = None
 
-        return rvec.reshape(1,1,3), avg_tvec.reshape(1,1,3)
+        # return self.avg_rvec, self.avg_tvec
         # print("Calculated Euler ZYX (T from Object frame to camera frame are: ", np.rad2deg(r.as_euler('ZYX')))
 
 
@@ -98,9 +113,9 @@ class ClassImageProcessing():
             [rvecs, tvecs, objPts] = cv2.aruco.estimatePoseSingleMarkers(markerCorners, 1, self.cameraMatrix, self.distCoeffs);
 
             # Get average rvec
-            avg_rvecs, avg_tvecs = self.update_avg_rvec(rvecs,tvecs)
+            self.update_avg_rvec(rvecs,tvecs)
 
-            projMatrix, viewMatrix = self.get_gl_proj_and_view_matrices(self.cameraMatrix, frame_w, frame_h, rvecs, tvecs )
+            projMatrix, viewMatrix = self.get_gl_proj_and_view_matrices(self.cameraMatrix, frame_w, frame_h, self.avg_rvecs, self.avg_tvecs)
 
             # print("tvecs are: \n ", tvecs)
             # print("rvec is rodrigues rotation vector: \n ", np.rad2deg(rvecs))
@@ -117,7 +132,7 @@ class ClassImageProcessing():
             # Draw the markers
             # img_axis = np.copy(img_corners)
 
-            cv2.aruco.drawAxis(img_corners, self.cameraMatrix, self.distCoeffs, rvecs[0], tvecs[0], 2)
+            cv2.aruco.drawAxis(img_corners, self.cameraMatrix, self.distCoeffs, self.avg_rvecs[0], self.avg_tvecs[0], 2)
             # for i in range(0,1):
             #     rvec = rvecs[0][i]
             #     tvec = tvecs[0][i]
