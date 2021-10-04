@@ -49,36 +49,6 @@ class ClassImageProcessing():
         self.obj_tvec.updateBuffer(tvecs[0])
         self.avg_tvecs = self.obj_tvec.avg_value.reshape(1,1,3)
 
-        #
-        # # Update buffer for angles
-        # self.ypr_buffer[0,:] = self.ypr_buffer[1,:]
-        # self.ypr_buffer[1,:] = self.ypr_buffer[2,:]
-        # self.ypr_buffer[2,:] = ypr_current
-        #
-        # # Calculate average value
-        # y = np.sum(self.ypr_buffer[:,0]) / self.ypr_buffer.shape[0]
-        # p = np.sum(self.ypr_buffer[:,1]) / self.ypr_buffer.shape[0]
-        # r = np.sum(self.ypr_buffer[:,2]) / self.ypr_buffer.shape[0]
-        # avg_eul = np.array([y,p,r])
-        # ravg = R.from_euler('ZYX',avg_eul,degrees=True)
-        # self.avg_rvecs = ravg.as_rotvec().reshape(1, 1, 3)
-        #
-        # # Update buffer for tvec
-        # self.tvec_buffer[0,:] = self.tvec_buffer[1,:]
-        # self.tvec_buffer[1,:] = self.tvec_buffer[2,:]
-        # self.tvec_buffer[2,:] = tvecs[0]
-        #
-        # t1 = np.sum(self.tvec_buffer[:,0]) / self.tvec_buffer.shape[0]
-        # t2 = np.sum(self.tvec_buffer[:,1]) / self.tvec_buffer.shape[0]
-        # t3 = np.sum(self.tvec_buffer[:,2]) / self.tvec_buffer.shape[0]
-        #
-        # self.avg_tvecs = np.array([t1,t2,t3]).reshape(1, 1, 3)
-
-        # tvec = None
-
-        # return self.avg_rvec, self.avg_tvec
-        # print("Calculated Euler ZYX (T from Object frame to camera frame are: ", np.rad2deg(r.as_euler('ZYX')))
-
 
     def detect_marker(self, frame):
         '''
@@ -117,26 +87,8 @@ class ClassImageProcessing():
 
             projMatrix, viewMatrix = self.get_gl_proj_and_view_matrices(self.cameraMatrix, frame_w, frame_h, self.avg_rvecs, self.avg_tvecs)
 
-            # print("tvecs are: \n ", tvecs)
-            # print("rvec is rodrigues rotation vector: \n ", np.rad2deg(rvecs))
-            # print("objPts are: \n ", objPts)
-
-            # dst,jacob = cv2.Rodrigues(rvecs[0][0])
-            # #Convert the dcm to euler angles
-            # print('\n dst=\n ', dst)
-
-            # r = R.from_matrix(dst)
-            # Use intrinsic rotations for euler angle calculation
-            # print("Calculated Euler ZYX (T from Object frame to camera frame are: ", np.rad2deg(r.as_euler('ZYX')))
-
-            # Draw the markers
-            # img_axis = np.copy(img_corners)
-
+            #Draw axis
             cv2.aruco.drawAxis(img_corners, self.cameraMatrix, self.distCoeffs, self.avg_rvecs[0], self.avg_tvecs[0], 2)
-            # for i in range(0,1):
-            #     rvec = rvecs[0][i]
-            #     tvec = tvecs[0][i]
-            #     cv2.aruco.drawAxis(img_corners, self.cameraMatrix, self.distCoeffs, rvec, tvec, 2)
 
         return img_corners, projMatrix, viewMatrix
 
@@ -150,7 +102,7 @@ class ClassImageProcessing():
         projectionMat = np.ndarray(shape=(4,4), dtype=np.float32)
         viewMatrix    = np.ndarray(shape=(4,4), dtype=np.float32)
         # https://strawlab.org/2011/11/05/augmented-reality-with-OpenGL/
-        # Buiilding as a transpose of what is shown in strawlab
+        # Buiilding as a transpose of what is shown in strawlab so dont need to do a transpose later
         fudege_factor = 1.0
         projectionMat[0,0]  = fudege_factor* 2*camMtx[0,0]/frameW
         projectionMat[0,1]  = 0.0
