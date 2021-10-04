@@ -2,7 +2,7 @@ from ClassAR import *
 
 obj = ClassAR("My OpenGL Window")
 
-CheckDepth = False
+CheckDepth = True
 flag_init_complete = obj.initialize_gl(CheckDepth)
 
 if flag_init_complete:

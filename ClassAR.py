@@ -75,11 +75,11 @@ class ClassAR():
         print("Defined projection matrix is: ", self.projection_default)
 
         # Define viewMatrix - This is the camera pose
-        self.view_default = pyrr.matrix44.create_from_translation(pyrr.Vector3([0.0, 0.0, -3]))
+        self.view_default = pyrr.matrix44.create_from_translation(pyrr.Vector3([0.0, 0.0, -2.]))
         print("Defined view matrix is: ", self.view_default)
 
         # Set the default value of the model matrix. This is the object pose.
-        self.model_default =pyrr.matrix44.create_from_translation(pyrr.Vector3([0.0, 0.0, -5.0 ]))
+        self.model_default =pyrr.matrix44.create_from_translation(pyrr.Vector3([0.0, 0.0, 0.0 ]))
         print("Defined model matrix is: ", self.model_default)
 
         # Define scaleMatrix - This is the model scale matrix 4x4
@@ -140,19 +140,22 @@ class ClassAR():
                 glBindTexture(GL_TEXTURE_2D,self.tex_background)
 
                 # Detect the marker and  get the orientation matrix
-                updated_frame, projMatrix, viewMatrix = self.obj_cv.detect_marker(frame)
+                updated_frame, self.projMatrix, self.viewMatrix = self.obj_cv.detect_marker(frame)
                 if updated_frame is not None:
                     self.apply_texture(self.background_texture_file, updated_frame)
                 else:
                     self.apply_texture(self.background_texture_file, frame)
-
+                # self.apply_texture(self.background_texture_file, frame)
 
                 glDrawArrays(GL_TRIANGLES, 0, 6)
 
             if self.show_object:
-                updated_frame, projMatrix, viewMatrix = self.obj_cv.detect_marker(frame)
 
-                if projMatrix is not None and viewMatrix is not None:
+                if not self.show_background:
+                    # NEed to calculate the matrices
+                    updated_frame, self.projMatrix, self.viewMatrix = self.obj_cv.detect_marker(frame)
+
+                if self.projMatrix is not None and self.viewMatrix is not None:
 
                     # Overlay object related
                     # Vertex operations
@@ -167,7 +170,7 @@ class ClassAR():
                     # Define the scale for the model
                     # Define scaleMatrix - This is the model scale matrix 4x4
                     scale_obj = pyrr.matrix44.create_from_translation(pyrr.Vector3([0.0, 0.0, 0]))
-                    scale_factor = 1.0
+                    scale_factor = 0.5
                     for i in range(0,3):
                         scale_obj[i][i] = scale_factor
                         scale_obj[i][i] = scale_factor
@@ -176,14 +179,15 @@ class ClassAR():
                     test_vec = np.array([1.0,0.0,0.0,1.0])
                     a = np.matmul(scale_obj, test_vec)
                     b = np.matmul(model_pose, a)
-                    c = np.matmul(viewMatrix.transpose(), b)
-                    d = np.matmul(projMatrix.transpose(),  c)
+                    c = np.matmul(self.viewMatrix.transpose(), b)
+                    d = np.matmul(self.projMatrix.transpose(),  c)
                     f = d /d[3]
+                    # glPolygonMode( GL_FRONT_AND_BACK, GL_LINE )
 
                     glUniformMatrix4fv(self.scale_loc, 1, GL_FALSE, scale_obj)
                     glUniformMatrix4fv(self.model_loc, 1, GL_FALSE, model_pose)
-                    glUniformMatrix4fv(self.proj_loc, 1, GL_FALSE, projMatrix)
-                    glUniformMatrix4fv(self.view_loc, 1, GL_FALSE, viewMatrix)
+                    glUniformMatrix4fv(self.proj_loc, 1, GL_FALSE, self.projMatrix)
+                    glUniformMatrix4fv(self.view_loc, 1, GL_FALSE, self.viewMatrix)
 
                     # glUniformMatrix4fv(proj_loc, 1, GL_FALSE, self.projection_default)
                     # glUniformMatrix4fv(view_loc, 1, GL_FALSE, self.view_default)
@@ -194,12 +198,17 @@ class ClassAR():
 
                     glDrawArrays(GL_TRIANGLES, 0, len(self.model_obj.vertex_index))
 
+                    # # Reset proj matrix
+                    # self.viewMatrix = None
+                    # self.projMatrix = None
+
+
             glfw.swap_buffers(self.window)
 
     def create_background_quad(self):
         # Create vertices
         val  = 1.0
-        zdepth = -1.
+        zdepth = 0.999
         #                   [positions        texture coordinates]
         quad =   np.array([  -val, -val, zdepth,  0.0, 0.0,
                              val, -val, zdepth,  1.0, 0.0,
@@ -302,7 +311,7 @@ class ClassAR():
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
 
-        self.apply_texture(self.object_texture_file)
+        # self.apply_texture(self.object_texture_file)
 
 
     def apply_texture(self, fname_texture, frame = None):
@@ -327,7 +336,7 @@ class ClassAR():
             img_data = np.array(list(image.getdata()), np.uint8)
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
                          width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, img_data)
-            glEnable(GL_TEXTURE_2D)
+            # glEnable(GL_TEXTURE_2D)
 
         elif im_type == "png":
             image = Image.open(fname_texture)
@@ -339,7 +348,7 @@ class ClassAR():
             img_data = image.convert("RGBA").tobytes()
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
                          width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img_data)
-            glEnable(GL_TEXTURE_2D)
+            # glEnable(GL_TEXTURE_2D)
 
         elif im_type == "camera":
             frame = cv2.flip(frame,0) # Flip up/down
@@ -350,4 +359,4 @@ class ClassAR():
 
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
                          width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, frame) #CREATES A 2-D TEXTURE IMAGE
-            glEnable(GL_TEXTURE_2D)
+            # glEnable(GL_TEXTURE_2D)

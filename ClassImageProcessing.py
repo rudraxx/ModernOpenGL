@@ -17,8 +17,62 @@ class ClassImageProcessing():
         self.cameraMatrix = np.load("calibration_matrix.npy")
         self.distCoeffs = np.load("distCoeffs.npy")
 
+        self.avg_rvec =None
+        self.avg_tvec =None
+
+        self.ypr_buffer = np.zeros(shape=(3,3),dtype=np.float32)
+        self.tvec_buffer = np.zeros(shape=(3,3),dtype=np.float32)
+
+    def update_avg_rvec(self, rvecs, tvecs):
+
+        # Average the 3 values in the rpy buffer
+        dst,jacob = cv2.Rodrigues(rvecs[0][0])
+        # #Convert the dcm to euler angles
+        # print('\n dst=\n ', dst)
+
+        r = R.from_matrix(dst)
+        # Use intrinsic rotations for euler angle calculation
+        ypr_current = np.rad2deg(r.as_euler('ZYX'))
+
+        # Update buffer for angles
+        self.ypr_buffer[0,:] = self.ypr_buffer[1,:]
+        self.ypr_buffer[1,:] = self.ypr_buffer[2,:]
+        self.ypr_buffer[2,:] = ypr_current
+
+        # Update buffer for tvec
+        self.tvec_buffer[0,:] = self.tvec_buffer[1,:]
+        self.tvec_buffer[1,:] = self.tvec_buffer[2,:]
+        self.tvec_buffer[2,:] = tvecs[0]
+
+        # Calculate average value
+        y = np.sum(self.ypr_buffer[:,0]) / self.ypr_buffer.shape[0]
+        p = np.sum(self.ypr_buffer[:,1]) / self.ypr_buffer.shape[0]
+        r = np.sum(self.ypr_buffer[:,2]) / self.ypr_buffer.shape[0]
+
+        t1 = np.sum(self.tvec_buffer[:,0]) / self.tvec_buffer.shape[0]
+        t2 = np.sum(self.tvec_buffer[:,1]) / self.tvec_buffer.shape[0]
+        t3 = np.sum(self.tvec_buffer[:,2]) / self.tvec_buffer.shape[0]
+
+        avg_eul = np.array([y,p,r])
+        avg_tvec = np.array([t1,t2,t3])
+
+        ravg = R.from_euler('ZYX',avg_eul,degrees=True)
+        rvec = ravg.as_rotvec()
+
+        # tvec = None
+
+        return rvec.reshape(1,1,3), avg_tvec.reshape(1,1,3)
+        # print("Calculated Euler ZYX (T from Object frame to camera frame are: ", np.rad2deg(r.as_euler('ZYX')))
+
 
     def detect_marker(self, frame):
+        '''
+        :param frame:
+        :return:
+        img_corners
+        projMatrix
+        viewMatrix
+        '''
         projMatrix = None
         viewMatrix = None
         img_corners = None
@@ -43,7 +97,10 @@ class ClassImageProcessing():
 
             [rvecs, tvecs, objPts] = cv2.aruco.estimatePoseSingleMarkers(markerCorners, 1, self.cameraMatrix, self.distCoeffs);
 
-            projMatrix, viewMatrix = self.get_proj_matrix_from_camera_matrix(self.cameraMatrix, frame_w, frame_h, rvecs, tvecs )
+            # Get average rvec
+            avg_rvecs, avg_tvecs = self.update_avg_rvec(rvecs,tvecs)
+
+            projMatrix, viewMatrix = self.get_gl_proj_and_view_matrices(self.cameraMatrix, frame_w, frame_h, rvecs, tvecs )
 
             # print("tvecs are: \n ", tvecs)
             # print("rvec is rodrigues rotation vector: \n ", np.rad2deg(rvecs))
@@ -60,15 +117,16 @@ class ClassImageProcessing():
             # Draw the markers
             # img_axis = np.copy(img_corners)
 
-            for i in range(0,1):
-                rvec = rvecs[0][i]
-                tvec = tvecs[0][i]
-                cv2.aruco.drawAxis(img_corners, self.cameraMatrix, self.distCoeffs, rvec, tvec, 2)
+            cv2.aruco.drawAxis(img_corners, self.cameraMatrix, self.distCoeffs, rvecs[0], tvecs[0], 2)
+            # for i in range(0,1):
+            #     rvec = rvecs[0][i]
+            #     tvec = tvecs[0][i]
+            #     cv2.aruco.drawAxis(img_corners, self.cameraMatrix, self.distCoeffs, rvec, tvec, 2)
 
         return img_corners, projMatrix, viewMatrix
 
 
-    def get_proj_matrix_from_camera_matrix(self, camMtx, frameW, frameH, rvec, tvec):
+    def get_gl_proj_and_view_matrices(self, camMtx, frameW, frameH, rvec, tvec):
 
         # Projection matrix
         # https://stackoverflow.com/questions/46317246/ar-with-opencv-opengl
@@ -77,6 +135,7 @@ class ClassImageProcessing():
         projectionMat = np.ndarray(shape=(4,4), dtype=np.float32)
         viewMatrix    = np.ndarray(shape=(4,4), dtype=np.float32)
         # https://strawlab.org/2011/11/05/augmented-reality-with-OpenGL/
+        # Buiilding as a transpose of what is shown in strawlab
         fudege_factor = 1.0
         projectionMat[0,0]  = fudege_factor* 2*camMtx[0,0]/frameW
         projectionMat[0,1]  = 0.0
