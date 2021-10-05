@@ -185,7 +185,7 @@ class ClassAR():
                     # glPolygonMode( GL_FRONT_AND_BACK, GL_LINE )
 
                     # model_pose = pyrr.matrix44.create_from_axis_rotation([0.,0.,1.], 0.5 * glfw.get_time())
-                    model_pose = pyrr.matrix44.create_from_translation([0.,0.,4.])
+                    model_pose = pyrr.matrix44.create_from_translation([0.,0.,0.])
                     # model_pose[3][0] = 0.0
                     # model_pose[3][1] = 0.0
                     # model_pose[3][2] = 0.0
