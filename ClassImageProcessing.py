@@ -25,9 +25,13 @@ class ClassImageProcessing():
         # self.tvec_buffer = np.zeros(shape=(3,3),dtype=np.float32)
 
         # Create objects for filtering the tvec and rvec values
-        filter_size = 5 # Samples
-        self.obj_ypr = ClassFiltering(filter_size)
-        self.obj_tvec = ClassFiltering(filter_size)
+        self.filter_size = 5 # Samples
+        self.obj_ypr = ClassFiltering(self.filter_size)
+        self.obj_tvec = ClassFiltering(self.filter_size)
+
+    def reset_avg_filters(self):
+        self.obj_ypr = ClassFiltering(self.filter_size)
+        self.obj_tvec = ClassFiltering(self.filter_size)
 
 
     def update_avg_rvec(self, rvecs, tvecs):
@@ -90,6 +94,7 @@ class ClassImageProcessing():
 
             #Draw axis
             cv2.aruco.drawAxis(img_corners, self.cameraMatrix, self.distCoeffs, self.avg_rvecs[0], self.avg_tvecs[0], 2)
+            cv2.aruco.drawAxis(img_corners, self.cameraMatrix, self.distCoeffs, rvecs[0], tvecs[0], 2)
 
         return img_corners, projMatrix, viewMatrix
 

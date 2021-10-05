@@ -2,7 +2,7 @@ from ClassAR import *
 
 def main():
 
-    flag_show_when_no_marker = False
+    flag_show_when_no_marker = True
     obj = ClassAR("My OpenGL Window", flag_show_when_no_marker)
 
     CheckDepth = True
