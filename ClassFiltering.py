@@ -45,7 +45,7 @@ class ClassFiltering():
         c = np.sum(self.data_buffer[:,2]) / self.num_samples
 
         self.avg_value = np.array([a,b,c])
-        print(self.avg_value)
+        # print(self.avg_value)
 
 
 

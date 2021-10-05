@@ -28,13 +28,15 @@ class ClassAR():
     show_object = False
     show_background = False
     obj_cv = None # CV operations
+    flag_show_when_no_marker = False
 
 
-    def __init__(self, window_name, w_width=800, w_height=600):
+    def __init__(self, window_name, flag_show_when_no_marker, w_width=800, w_height=600):
         self.window_name = window_name
         self.w_width  = w_width
         self.w_height = w_height
         self.obj_cv = ClassImageProcessing()
+        self.flag_show_when_no_marker = flag_show_when_no_marker
 
 
 
@@ -121,6 +123,27 @@ class ClassAR():
             else:
                 glClear(GL_COLOR_BUFFER_BIT)
 
+            # Detect the marker
+            projMatrix = None
+            viewMatrix = None
+            updated_frame = None
+            # Detect the marker and  get the orientation matrix
+            updated_frame, projMatrix, viewMatrix = self.obj_cv.detect_marker(frame)
+
+            if self.flag_show_when_no_marker:
+                # If I want the virtual object to show up for this frame,
+                # but no marker was detected - Dont update the self.projMatrix
+                # So None value is not written to the property.
+                if projMatrix is not None and viewMatrix is not None:
+                    self.projMatrix = projMatrix
+                    self.viewMatrix = viewMatrix
+
+            else:
+                # If you want display only if a marker was detected
+                self.projMatrix = projMatrix
+                self.viewMatrix = viewMatrix
+
+
             if self.show_background:
 
                 # Background related
@@ -130,7 +153,9 @@ class ClassAR():
 
                 # Vertex operations
                 glBindVertexArray(self.VAO_background)
-                # Set all the matrices to identity so that the image covers the full viewport
+                # glPolygonMode( GL_FRONT_AND_BACK, GL_FILL)
+
+            # Set all the matrices to identity so that the image covers the full viewport
                 glUniformMatrix4fv(self.proj_loc, 1, GL_FALSE, self.identity_mat)
                 glUniformMatrix4fv(self.view_loc, 1, GL_FALSE, self.identity_mat)
                 glUniformMatrix4fv(self.model_loc, 1, GL_FALSE, self.identity_mat)
@@ -139,8 +164,6 @@ class ClassAR():
                 # Texture operations
                 glBindTexture(GL_TEXTURE_2D,self.tex_background)
 
-                # Detect the marker and  get the orientation matrix
-                updated_frame, self.projMatrix, self.viewMatrix = self.obj_cv.detect_marker(frame)
                 if updated_frame is not None:
                     self.apply_texture(self.background_texture_file, updated_frame)
                 else:
@@ -151,17 +174,15 @@ class ClassAR():
 
             if self.show_object:
 
-                if not self.show_background:
-                    # NEed to calculate the matrices
-                    updated_frame, self.projMatrix, self.viewMatrix = self.obj_cv.detect_marker(frame)
-
                 if self.projMatrix is not None and self.viewMatrix is not None:
 
                     # Overlay object related
                     # Vertex operations
                     glBindVertexArray(self.VAO_object)
-                    # model_pose = pyrr.matrix44.create_from_axis_rotation([0.,1.,0.], 0.0 * glfw.get_time())
-                    model_pose = pyrr.matrix44.create_from_translation([0.,0.,0.])
+                    # glPolygonMode( GL_FRONT_AND_BACK, GL_LINE )
+
+                    model_pose = pyrr.matrix44.create_from_axis_rotation([0.,0.,1.], 0.5 * glfw.get_time())
+                    # model_pose = pyrr.matrix44.create_from_translation([0.,0.,0.])
                     # model_pose[3][0] = 0.0
                     # model_pose[3][1] = 0.0
                     # model_pose[3][2] = 0.0
@@ -170,19 +191,19 @@ class ClassAR():
                     # Define the scale for the model
                     # Define scaleMatrix - This is the model scale matrix 4x4
                     scale_obj = pyrr.matrix44.create_from_translation(pyrr.Vector3([0.0, 0.0, 0]))
-                    scale_factor = 0.5
+                    scale_factor = 1
                     for i in range(0,3):
                         scale_obj[i][i] = scale_factor
                         scale_obj[i][i] = scale_factor
                         scale_obj[i][i] = scale_factor
 
-                    test_vec = np.array([1.0,0.0,0.0,1.0])
-                    a = np.matmul(scale_obj, test_vec)
-                    b = np.matmul(model_pose, a)
-                    c = np.matmul(self.viewMatrix.transpose(), b)
-                    d = np.matmul(self.projMatrix.transpose(),  c)
-                    f = d /d[3]
-                    # glPolygonMode( GL_FRONT_AND_BACK, GL_LINE )
+                    # test_vec = np.array([1.0,0.0,0.0,1.0])
+                    # a = np.matmul(scale_obj, test_vec)
+                    # b = np.matmul(model_pose, a)
+                    # c = np.matmul(self.viewMatrix.transpose(), b)
+                    # d = np.matmul(self.projMatrix.transpose(),  c)
+                    # f = d /d[3]
+                    # # glPolygonMode( GL_FRONT_AND_BACK, GL_LINE )
 
                     glUniformMatrix4fv(self.scale_loc, 1, GL_FALSE, scale_obj)
                     glUniformMatrix4fv(self.model_loc, 1, GL_FALSE, model_pose)

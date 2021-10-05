@@ -21,12 +21,13 @@ class ClassImageProcessing():
         self.avg_rvecs =None
         self.avg_tvecs =None
 
-        self.ypr_buffer = np.zeros(shape=(3,3),dtype=np.float32)
-        self.tvec_buffer = np.zeros(shape=(3,3),dtype=np.float32)
+        # self.ypr_buffer = np.zeros(shape=(3,3),dtype=np.float32)
+        # self.tvec_buffer = np.zeros(shape=(3,3),dtype=np.float32)
 
         # Create objects for filtering the tvec and rvec values
-        self.obj_ypr = ClassFiltering(3)
-        self.obj_tvec = ClassFiltering(3)
+        filter_size = 5 # Samples
+        self.obj_ypr = ClassFiltering(filter_size)
+        self.obj_tvec = ClassFiltering(filter_size)
 
 
     def update_avg_rvec(self, rvecs, tvecs):
@@ -48,7 +49,7 @@ class ClassImageProcessing():
         #Update avg for tvecs
         self.obj_tvec.updateBuffer(tvecs[0])
         self.avg_tvecs = self.obj_tvec.avg_value.reshape(1,1,3)
-
+        # self.avg_tvecs = tvecs
 
     def detect_marker(self, frame):
         '''
@@ -77,7 +78,7 @@ class ClassImageProcessing():
             img_corners = np.copy(frame)
             # img_corners = cv2.cvtColor(img_corners,cv2.COLOR_BGR2RGB)
 
-            cv2.aruco.drawDetectedMarkers(img_corners, markerCorners, markerIds)
+            # cv2.aruco.drawDetectedMarkers(img_corners, markerCorners, markerIds)
 
 
             [rvecs, tvecs, objPts] = cv2.aruco.estimatePoseSingleMarkers(markerCorners, 1, self.cameraMatrix, self.distCoeffs);

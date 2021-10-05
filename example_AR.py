@@ -2,7 +2,8 @@ from ClassAR import *
 
 def main():
 
-    obj = ClassAR("My OpenGL Window")
+    flag_show_when_no_marker = False
+    obj = ClassAR("My OpenGL Window", flag_show_when_no_marker)
 
     CheckDepth = True
     flag_init_complete = obj.initialize_gl(CheckDepth)
@@ -17,20 +18,20 @@ def main():
 
         iter = 0
         # Init the camera feed
-        # cap = cv2.VideoCapture("C:/Users/AbhishekBhat/Downloads/IMG_4841.MOV")
-        cap = cv2.VideoCapture(0)
+        cap = cv2.VideoCapture("C:/Users/AbhishekBhat/Downloads/IMG_4841.MOV")
+        # cap = cv2.VideoCapture(0)
         while True:
 
             # frame = cv2.imread("X:/arvr_exploration/calibrate_camera/images/aruco_overlay/IMG_4807.jpg")
             # frame = cv2.imread("X:/arvr_exploration/calibrate_camera/images/aruco_overlay/IMG_4809_mod.jpg")
-            frame = cv2.imread("./IMG_4807.jpg")
+            # frame = cv2.imread("./IMG_4807.jpg")
 
             # h,w = frame.shape[:2]
             # Resize window based on frame size
             # obj.fcn_window_resize(obj.window, w,h)
 
-            # ret, frame = cap.read()
-            ret = True
+            ret, frame = cap.read()
+            # ret = True
             if obj.window_status:
 
                 if ret:
