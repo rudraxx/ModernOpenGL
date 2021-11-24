@@ -1,10 +1,10 @@
 import glfw
 from OpenGL.GL import *
-import ShaderLoader
+from Modules import ShaderLoader
 import numpy as np
 import pyrr
 from PIL import Image
-from ObjLoader import *
+from Modules import ObjLoader
 import cv2
 from ClassImageProcessing import *
 

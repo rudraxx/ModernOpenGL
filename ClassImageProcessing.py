@@ -15,8 +15,8 @@ class ClassImageProcessing():
         self.parameters = cv2.aruco.DetectorParameters_create()
 
         # Load the matrixes
-        self.cameraMatrix = np.load("calibration_matrix.npy")
-        self.distCoeffs = np.load("distCoeffs.npy")
+        self.cameraMatrix = np.load("../res/calibration_iphone/calibration_matrix.npy")
+        self.distCoeffs = np.load("../res/calibration_iphone/distCoeffs.npy")
 
         self.avg_rvecs =None
         self.avg_tvecs =None
